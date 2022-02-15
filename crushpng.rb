@@ -8,26 +8,46 @@ require 'fileutils'
 $formats = [".png"]
 $count = 0
 
+def already(item)
+  puts "#{item} already processed, skipping"
+end
+
+def badext(item)
+  puts "#{item} not a supported file format, skipping"
+end
+
+def notfile(item)
+  puts "#{item} is not a file, skipping"
+end
+
+def notdir(item)
+  puts "#{item} is not a directory"
+end
+
+def process(item)
+  dirname = File.dirname item
+  outdir = "#{dirname}/processed"
+  FileUtils.mkdir_p outdir 
+  puts "optimizing #{item}"
+  `pngquant -v #{item} -o '#{outdir}/#{item}'`
+  puts "saved in #{outdir}/#{item}"
+end
+
 def q(item)
   if item.include? "-fs8"
-    puts "#{item} already processed, skipping"
+    already item
   else
     if $formats.include? File.extname(item.downcase)
-      dirname = File.dirname item
-      outdir = "#{dirname}/processed"
-      FileUtils.mkdir_p outdir 
-      puts "optimizing #{item}"
-      `pngquant -v #{item} -o '#{outdir}/#{item}'`
-      puts "saved in #{outdir}/#{item}"
+      process item
       $count += 1
     else
-      puts "#{item} not a supported file format, skipping"
+      badext item
     end  
   end
 end
 
 def help
-  puts "Expects either -f filename(s) or -d directoryname\n"
+  puts "Expects either -f filename(s) or -d directoryname"
   exit
 end
 
@@ -40,7 +60,7 @@ else
       if File.file? item
         q item
       else
-        puts "#{item} is not a file, skiping\n"
+        notfile item
       end
     end
   elsif ARGV[0] == '--directory' || ARGV[0] == '-D' || ARGV[0] == '-d'
@@ -49,13 +69,13 @@ else
       Dir.foreach(arg) do |item|
         next if item == '.' or item == '..'
         if File.directory? item
-          puts "#{item} is not a file, skiping\n"
+          notfile item
         else
           q item
         end
       end
     else
-      puts "Not a directory\n"
+      notdir arg
       exit
     end
   else
@@ -64,7 +84,7 @@ else
 end
 
 if $count > 0
-  puts "Done. Quantized #{$count} files.\n"
+  puts "Done. Quantized #{$count} files."
 else
-  puts "Ended without processing any file.\n"
+  puts "Ended without processing any file."
 end
